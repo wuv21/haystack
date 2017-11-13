@@ -89,17 +89,19 @@ def open_file(file_name):
 
         return seqs
 
-def seq_walk(i, idxs, valid, valid_targets, rev=False):
+def seq_walk(i, idxs, valid, valid_targets, args, rev=False):
     if i == len(idxs):
         return valid
 
     direction = -1 if rev else 1
-    for mark in range(i, 0 if rev else len(idxs), direction):
+    upper_limit = 0 if rev else len(idxs)
+
+    for mark in range(i, upper_limit, direction):
         distance = abs(idxs[i] - idxs[mark]) + GC_PADDING - 1
 
-        if distance > MAX_LEN:
+        if distance > args.maxLen:
             break
-        elif distance >= MIN_LEN:
+        elif distance >= args.minLen:
             try:
                 valid_targets.add(idxs[mark])
                 valid[idxs[i]].append(idxs[mark])
@@ -108,14 +110,14 @@ def seq_walk(i, idxs, valid, valid_targets, rev=False):
 
             distance = abs(idxs[i] - idxs[mark]) + GC_PADDING - 1
 
-    return seq_walk(i + 1, idxs, valid, valid_targets)
+    return seq_walk(i + 1, idxs, valid, valid_targets, args)
 
 
-def seq_walker(idxs):
+def seq_walker(idxs, args):
     valid_fwd_idxs = {}
     valid_fwd_targets = set()
 
-    seq_walk(0, idxs, valid_fwd_idxs, valid_fwd_targets)
+    seq_walk(0, idxs, valid_fwd_idxs, valid_fwd_targets, args)
 
     valid_middle_idxs = [x for x in valid_fwd_targets if x in valid_fwd_idxs]
     valid_back_idxs = [x for x in valid_middle_idxs if x in valid_fwd_idxs]
@@ -146,7 +148,7 @@ def find_GC(seq):
     return idxs
 
 
-def calculate_primer_info(combo, seq):
+def calculate_primer_info(combo, seq, args):
     virus_f = seq[combo[1]:combo[2] + GC_PADDING]
     virus_r = seq[combo[0]:combo[1] + GC_PADDING].reverse_complement()
 
@@ -162,18 +164,18 @@ def calculate_primer_info(combo, seq):
         hp = primer3.calcHairpin(primer).dg / 1000.0
         hod_dg = primer3.calcHomodimer(primer).dg / 1000.0
 
-        if tm < MIN_TM or tm > MAX_TM:
+        if tm < args.minTM or tm > args.maxTM:
             return None
-        elif hp < MIN_HP_DG:
+        elif hp < args.hp:
             return None
-        elif hod_dg < MIN_HD_DG:
+        elif hod_dg < args.hoD:
             return None
 
         primers_info.append([round(x, 2) for x in [tm, hp, hod_dg]])
 
     virus_hed_dg = primer3.calcHeterodimer(primers[0], primers[1]).dg / 1000.0
 
-    if virus_hed_dg < MIN_HD_DG:
+    if virus_hed_dg < args.heD:
         return None
 
     final_info = {
@@ -193,6 +195,10 @@ def main():
     parser = argparse.ArgumentParser(description='Design primers from fasta contigs.')
 
     parser.add_argument('file', nargs='*', help='fasta file to read')
+    parser.add_argument('--minLen', type=float,
+        help='minimum primer length (bp)', default=MIN_LEN)
+    parser.add_argument('--maxLen', type=float,
+        help='maximum primer length (bp)', default=MAX_LEN)
     parser.add_argument('--minTM', type=float,
         help='minimum Tm (deg C)', default=MIN_TM)
     parser.add_argument('--maxTM', type=float,
@@ -205,7 +211,6 @@ def main():
         help='minimum heterodimer delta G (kcal/mol)', default=MIN_HED_DG)
 
     args = parser.parse_args()
-
     for file_name in args.file:
         try:
             print("Analyzing: %s" % file_name)
@@ -222,19 +227,22 @@ def main():
                 print("Contig: %s" % seqs[i].id)
                 idxs = find_GC(seqs[i].seq.upper())
 
-                all_combos = seq_walker(idxs)
+                all_combos = seq_walker(idxs, args)
                 all_info = []
                 for combo in all_combos:
-                    info = calculate_primer_info(combo, seqs[i].seq)
+                    info = calculate_primer_info(combo, seqs[i].seq, args)
                     if info:
                         all_info.append(info)
 
                 all_info_sorted = sorted(all_info, key=lambda k: k['primers_info'][0], reverse=True)
                 pp.pprint(all_info_sorted[:3])
 
-                print("\n")
+                print()
 
             except IndexError:
+                break
+            except RecursionError:
+                print("Error: Fasta file may not be formatted correctly.")
                 break
 
         print("-" * 80)
