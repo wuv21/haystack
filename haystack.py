@@ -19,7 +19,7 @@ Example:
         'primers_info': [[57.65, 0.0, -2.3], [57.8, -0.8, -2.77]],
         'virus_hed_dg': -2.16}]
 
-        $
+        $ [...]
 
 --------------------------------------------------------------------------------
 
@@ -53,9 +53,6 @@ Attributes:
 
     MIN_HED_DG (float): Minimum delta G of heterodimer formation in kcal/mol.
         Default is -9.
-
-Todo:
-    * Hookup argument parsing
 
 """
 
