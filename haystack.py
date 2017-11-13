@@ -83,9 +83,9 @@ VECTOR_F = 'CGAAGAGCTAGAGGATCCCCG'
 VECTOR_R = 'CGAAGAGCTTTTGAGTCGACCTG'
 
 
-def open_file(file_name):
+def open_file(file_name, args):
     with open(file_name, "r") as fasta_file:
-        seqs = list(SeqIO.parse(fasta_file, "fasta"))[0:MAX_CONTIGS]
+        seqs = list(SeqIO.parse(fasta_file, "fasta"))[0:args.maxContigs]
 
         return seqs
 
@@ -97,7 +97,7 @@ def seq_walk(i, idxs, valid, valid_targets, args, rev=False):
     upper_limit = 0 if rev else len(idxs)
 
     for mark in range(i, upper_limit, direction):
-        distance = abs(idxs[i] - idxs[mark]) + GC_PADDING - 1
+        distance = abs(idxs[i] - idxs[mark]) + args.gcPad - 1
 
         if distance > args.maxLen:
             break
@@ -108,7 +108,7 @@ def seq_walk(i, idxs, valid, valid_targets, args, rev=False):
             except KeyError:
                 valid[idxs[i]] = [idxs[mark]]
 
-            distance = abs(idxs[i] - idxs[mark]) + GC_PADDING - 1
+            distance = abs(idxs[i] - idxs[mark]) + args.gcPad - 1
 
     return seq_walk(i + 1, idxs, valid, valid_targets, args)
 
@@ -136,11 +136,11 @@ def seq_walker(idxs, args):
     return all_combos
 
 
-def find_GC(seq):
+def find_GC(seq, args):
     wrong_nt = ["A", "T"]
     idxs = []
 
-    for i in range(CONTIG_BOUNDARY, len(seq) - CONTIG_BOUNDARY, 1):
+    for i in range(args.contigBoundary, len(seq) - args.contigBoundary, 1):
         triplet = seq[i:i+GC_PADDING]
         if not any(nt in triplet for nt in wrong_nt):
             idxs.append(i)
@@ -149,8 +149,8 @@ def find_GC(seq):
 
 
 def calculate_primer_info(combo, seq, args):
-    virus_f = seq[combo[1]:combo[2] + GC_PADDING]
-    virus_r = seq[combo[0]:combo[1] + GC_PADDING].reverse_complement()
+    virus_f = seq[combo[1]:combo[2] + args.gcPad]
+    virus_r = seq[combo[0]:combo[1] + args.gcPad].reverse_complement()
 
     # from TL
     ga_f = str(virus_r.reverse_complement()) + VECTOR_F
@@ -195,26 +195,40 @@ def main():
     parser = argparse.ArgumentParser(description='Design primers from fasta contigs.')
 
     parser.add_argument('file', nargs='*', help='fasta file to read')
-    parser.add_argument('--minLen', type=float,
-        help='minimum primer length (bp)', default=MIN_LEN)
-    parser.add_argument('--maxLen', type=float,
-        help='maximum primer length (bp)', default=MAX_LEN)
+    parser.add_argument('--minLen', type=int,
+                        help='minimum primer length (bp)', default=MIN_LEN)
+    parser.add_argument('--maxLen', type=int,
+                        help='maximum primer length (bp)', default=MAX_LEN)
+
+    parser.add_argument('--contigBoundary', type=int,
+                        help='contig boundary (bp)', default=CONTIG_BOUNDARY)
+    parser.add_argument('--maxContigs', type=int,
+                        help='max number of contigs to analyze per fasta file',
+                        default=MAX_CONTIGS)
+    parser.add_argument('--gcPad', type=int,
+                        help='number of G or C nucleotides at front and end of primer',
+                        default=GC_PADDING)
+
     parser.add_argument('--minTM', type=float,
-        help='minimum Tm (deg C)', default=MIN_TM)
+                        help='minimum Tm (deg C)', default=MIN_TM)
     parser.add_argument('--maxTM', type=float,
-        help='maximum Tm (deg C)', default=MAX_TM)
+                        help='maximum Tm (deg C)', default=MAX_TM)
+
     parser.add_argument('--hp', type=float,
-        help='minimum hairpin delta G (kcal/mol)', default=MIN_HP_DG)
+                        help='minimum hairpin delta G (kcal/mol)',
+                        default=MIN_HP_DG)
     parser.add_argument('--hoD', type=float,
-        help='minimum homodimer delta G (kcal/mol)', default=MIN_HD_DG)
+                        help='minimum homodimer delta G (kcal/mol)',
+                        default=MIN_HD_DG)
     parser.add_argument('--heD', type=float,
-        help='minimum heterodimer delta G (kcal/mol)', default=MIN_HED_DG)
+                        help='minimum heterodimer delta G (kcal/mol)',
+                        default=MIN_HED_DG)
 
     args = parser.parse_args()
     for file_name in args.file:
         try:
             print("Analyzing: %s" % file_name)
-            seqs = open_file(file_name)
+            seqs = open_file(file_name, args)
         except FileNotFoundError:
             print("Error: %s not found" % (file_name))
             continue
@@ -222,10 +236,10 @@ def main():
             print("Error: cannot accept a directory. Please use a wildcard or input files only.")
             continue
 
-        for i in range(0, MAX_CONTIGS):
+        for i in range(0, args.maxContigs):
             try:
                 print("Contig: %s" % seqs[i].id)
-                idxs = find_GC(seqs[i].seq.upper())
+                idxs = find_GC(seqs[i].seq.upper(), args)
 
                 all_combos = seq_walker(idxs, args)
                 all_info = []
