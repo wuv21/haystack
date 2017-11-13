@@ -5,9 +5,13 @@ Primer finding (needle) in contigs (haystack)
 Haystack will discover primers with specific settings in a given fasta file that contains one or more contigs. Example usage is shown below:
 
 ```bash
-$ python haystack.py file.fasta # will display result in line
-$ python haystack.py file.fasta > test.out # will display in file
+# will display result in line
+$ python haystack.py file.fasta
 
+# will display in file
+$ python haystack.py file.fasta > test.out
+
+# example output
     Analyzing: ./BB3-1_Anello_contigs_labeled.fasta
     Contig: BB3-1_cap3-contigs.fa19
     [{'combo': (250, 269, 288),
@@ -24,7 +28,8 @@ $ [...]
 Fasta files can be batch imported into the program with wildcard characters.
 
 ```bash
-# will analyze all fasta files in current folder with surrounding 5 G or C nucleotides on either end of primer
+# will analyze all fasta files in current folder with surrounding 5 G or C
+# nucleotides on either end of primer
 $ python haystack.py --gcPad 5 *.fasta
 ```
 
