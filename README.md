@@ -1,7 +1,15 @@
 # haystack
 Primer finding (needle) in contigs (haystack)
 
-# Example usage :
+## Requirements:
+Requires [Python 3.x](https://www.python.org/), [BioPython](http://biopython.org/) and [Primer3](https://github.com/libnano/primer3-py).
+
+All requirements can be installed using the following command (either in virual environment or standard environment):
+```bash
+$ pip install -r requirements.txt
+```
+
+# Example usage:
 Haystack will discover primers with specific settings in a given fasta file that contains one or more contigs. Example usage is shown below:
 
 ```bash
