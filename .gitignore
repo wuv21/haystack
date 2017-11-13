@@ -1,0 +1,5 @@
+*.fasta
+.DS_STore
+.vscode
+selected_primers.out
+haystack/
