@@ -218,8 +218,6 @@ def main():
 
     args = parser.parse_args()
 
-    time_start = time.clock()
-
     for file_name in args.file:
         try:
             print("Analyzing: %s" % file_name)
