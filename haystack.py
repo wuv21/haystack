@@ -86,7 +86,7 @@ def open_file(file_name, args):
 
         return seqs
 
-def seq_walk(i, idxs, valid, valid_targets, args, rev=False):
+def seq_walk(i, idxs, valid, args, rev=False):
     if i == len(idxs):
         return valid
 
@@ -100,30 +100,25 @@ def seq_walk(i, idxs, valid, valid_targets, args, rev=False):
             break
         elif distance >= args.minLen:
             try:
-                valid_targets.add(idxs[mark])
                 valid[idxs[i]].append(idxs[mark])
             except KeyError:
                 valid[idxs[i]] = [idxs[mark]]
 
             distance = abs(idxs[i] - idxs[mark]) + args.gcPad - 1
 
-    return seq_walk(i + 1, idxs, valid, valid_targets, args)
+    return seq_walk(i + 1, idxs, valid, args)
 
 
 def seq_walker(idxs, args):
-    valid_fwd_idxs = {}
-    valid_fwd_targets = set()
+    valid_idxs = {}
 
-    seq_walk(0, idxs, valid_fwd_idxs, valid_fwd_targets, args)
-
-    valid_middle_idxs = [x for x in valid_fwd_targets if x in valid_fwd_idxs]
-    valid_back_idxs = [x for x in valid_middle_idxs if x in valid_fwd_idxs]
+    seq_walk(0, idxs, valid_idxs, args)
 
     all_combos = []
-    for back in valid_back_idxs:
-        for mid in valid_fwd_idxs[back]:
+    for back in valid_idxs:
+        for mid in valid_idxs[back]:
             try:
-                combo_setup = [[back], [mid], valid_fwd_idxs[mid]]
+                combo_setup = [[back], [mid], valid_idxs[mid]]
                 combo_nested = list(itertools.product(*combo_setup))
 
                 all_combos += combo_nested
@@ -222,6 +217,9 @@ def main():
                         default=MIN_HED_DG)
 
     args = parser.parse_args()
+
+    time_start = time.clock()
+
     for file_name in args.file:
         try:
             print("Analyzing: %s" % file_name)
