@@ -59,11 +59,10 @@ Attributes:
 import argparse
 import itertools
 import pprint as pp
-import primer3
-from Bio import SeqIO
 import multiprocessing
 from functools import partial
-import time
+import primer3
+from Bio import SeqIO
 
 MAX_CONTIGS = 3
 
@@ -254,12 +253,10 @@ def main():
 
     args = parser.parse_args()
 
-    t_start = time.time()
     analyze_file_std = partial(analyze_file, args=args)
 
     with multiprocessing.Pool(processes=4) as pool:
         results = pool.map_async(analyze_file_std, args.file)
         results.wait()
 
-    print(time.time() - t_start)
 main()
