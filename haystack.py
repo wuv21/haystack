@@ -86,14 +86,12 @@ def open_file(file_name, args):
 
         return seqs
 
-def seq_walk(i, idxs, valid, args, rev=False):
+
+def seq_walk(i, idxs, valid, args):
     if i == len(idxs):
         return valid
 
-    direction = -1 if rev else 1
-    upper_limit = 0 if rev else len(idxs)
-
-    for mark in range(i, upper_limit, direction):
+    for mark in range(i, len(idxs)):
         distance = abs(idxs[i] - idxs[mark]) + args.gcPad - 1
 
         if distance > args.maxLen:
