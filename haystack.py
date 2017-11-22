@@ -61,7 +61,9 @@ import itertools
 import pprint as pp
 import primer3
 from Bio import SeqIO
-
+import multiprocessing
+from functools import partial
+import time
 
 MAX_CONTIGS = 3
 
@@ -181,6 +183,42 @@ def calculate_primer_info(combo, seq, args):
     return final_info
 
 
+def analyze_file(file_name, args):
+    try:
+        print("Analyzing: %s" % file_name)
+        seqs = open_file(file_name, args)
+    except FileNotFoundError:
+        print("Error: %s not found" % (file_name))
+        return
+    except IsADirectoryError:
+        print("Error: cannot accept a directory. Please use a wildcard or input files only.")
+        return
+
+    for i in range(0, args.maxContigs):
+        try:
+            print("Contig: %s" % seqs[i].id)
+            idxs = find_GC(seqs[i].seq.upper(), args)
+
+            all_combos = seq_walker(idxs, args)
+            all_info = []
+            for combo in all_combos:
+                info = calculate_primer_info(combo, seqs[i].seq, args)
+                if info:
+                    all_info.append(info)
+
+            all_info_sorted = sorted(all_info, key=lambda k: k['primers_info'][0], reverse=True)
+            pp.pprint(all_info_sorted[:3])
+
+            print()
+
+        except IndexError:
+            break
+        except RecursionError:
+            print("Error: Fasta file may not be formatted correctly.")
+            break
+
+        print('-' * 80)
+
 def main():
     parser = argparse.ArgumentParser(description='Design primers from fasta contigs.')
 
@@ -216,39 +254,12 @@ def main():
 
     args = parser.parse_args()
 
-    for file_name in args.file:
-        try:
-            print("Analyzing: %s" % file_name)
-            seqs = open_file(file_name, args)
-        except FileNotFoundError:
-            print("Error: %s not found" % (file_name))
-            continue
-        except IsADirectoryError:
-            print("Error: cannot accept a directory. Please use a wildcard or input files only.")
-            continue
+    t_start = time.time()
+    analyze_file_std = partial(analyze_file, args=args)
 
-        for i in range(0, args.maxContigs):
-            try:
-                print("Contig: %s" % seqs[i].id)
-                idxs = find_GC(seqs[i].seq.upper(), args)
+    with multiprocessing.Pool(processes=4) as pool:
+        results = pool.map_async(analyze_file_std, args.file)
+        results.wait()
 
-                all_combos = seq_walker(idxs, args)
-                all_info = []
-                for combo in all_combos:
-                    info = calculate_primer_info(combo, seqs[i].seq, args)
-                    if info:
-                        all_info.append(info)
-
-                all_info_sorted = sorted(all_info, key=lambda k: k['primers_info'][0], reverse=True)
-                pp.pprint(all_info_sorted[:3])
-
-                print()
-
-            except IndexError:
-                break
-            except RecursionError:
-                print("Error: Fasta file may not be formatted correctly.")
-                break
-
-        print("-" * 80)
+    print(time.time() - t_start)
 main()
