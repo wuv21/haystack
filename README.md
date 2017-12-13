@@ -20,8 +20,8 @@ $ python haystack.py file.fasta
 $ python haystack.py file.fasta > test.out
 
 # example output
-    Analyzing: ./BB3-1_Anello_contigs_labeled.fasta
-    Contig: BB3-1_cap3-contigs.fa19
+    Analyzing: ./file.fasta
+    Contig: contig.f1
     [{'combo': (250, 269, 288),
     'ga_f': 'CCGAAGGTGAGTGAAACCACCGCGAAGAGCTAGAGGATCCCCG',
     'ga_r': 'CCGAATTGCCCCTTGACTACGGCGAAGAGCTTTTGAGTCGACCTG',
