@@ -3,3 +3,4 @@
 .vscode
 selected_primers.out
 haystack/
+*.out
